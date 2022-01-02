@@ -360,6 +360,7 @@ class TestSqsProvider:
         result_send = sqs_client.send_message_batch(QueueUrl=queue_url, Entries=batch)
         assert len(result_send["Failed"]) == 1
 
+    @pytest.mark.xfail
     def test_fifo_messages_in_order_after_timeout(self, sqs_client, sqs_create_queue):
         # issue 4287
         queue_name = f"queue-{short_uid()}.fifo"

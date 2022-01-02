@@ -360,6 +360,30 @@ class TestSqsProvider:
         result_send = sqs_client.send_message_batch(QueueUrl=queue_url, Entries=batch)
         assert len(result_send["Failed"]) == 1
 
+    def test_fifo_messages_in_order_after_timeout(self, sqs_client, sqs_create_queue):
+        # issue 4287
+        queue_name = f"queue-{short_uid()}.fifo"
+        timeout = 1
+        attributes = {"FifoQueue": "true", "VisibilityTimeout": f"{timeout}"}
+        queue_url = sqs_create_queue(QueueName=queue_name, Attributes=attributes)
+
+        for i in range(3):
+            sqs_client.send_message(
+                QueueUrl=queue_url,
+                MessageBody=f"message-{i}",
+                MessageGroupId="1",
+                MessageDeduplicationId=f"{i}",
+            )
+
+        def receive_and_check_order():
+            result_receive = sqs_client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)
+            for j in range(3):
+                assert result_receive["Messages"][j]["Body"] == f"message-{j}"
+
+        receive_and_check_order()
+        time.sleep(timeout + 1)
+        receive_and_check_order()
+
     def test_list_queue_tags(self, sqs_client, sqs_create_queue):
         queue_name = f"queue-{short_uid()}"
         queue_url = sqs_create_queue(QueueName=queue_name)
@@ -422,7 +446,6 @@ class TestSqsProvider:
         assert "Messages" not in result_follow_up.keys()
 
     def test_publish_get_delete_message_batch(self, sqs_client, sqs_create_queue):
-        # TODO: this does not work against AWS
         message_count = 10
         queue_name = f"queue-{short_uid()}"
         queue_url = sqs_create_queue(QueueName=queue_name)

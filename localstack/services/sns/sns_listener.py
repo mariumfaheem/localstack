@@ -174,9 +174,6 @@ class ProxyListenerSNS(PersistingProxyListener):
 
                 do_unsubscribe(req_data.get("SubscriptionArn")[0])
 
-            elif req_action == "DeleteTopic":
-                do_delete_topic(topic_arn)
-
             elif req_action == "Publish":
                 if req_data.get("Subject") == [""]:
                     return make_error(code=400, code_string="InvalidParameter", message="Subject")
@@ -642,12 +639,6 @@ def publish_message(topic_arn, req_data, headers, subscription_arn=None, skip_ch
         )
     )
     return message_id
-
-
-def do_delete_topic(topic_arn):
-    sns_backend = SNSBackend.get()
-    sns_backend.sns_subscriptions.pop(topic_arn, None)
-    sns_backend.sns_tags.pop(topic_arn, None)
 
 
 def do_confirm_subscription(topic_arn, token):

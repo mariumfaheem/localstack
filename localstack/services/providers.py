@@ -191,9 +191,14 @@ def ses():
 
 @aws_provider()
 def sns():
+    from localstack.aws.proxy import AsfWithFallbackListener
     from localstack.services.sns import sns_listener, sns_starter
+    from localstack.services.sns.provider import SnsProvider
 
-    return Service("sns", listener=sns_listener.UPDATE_SNS, start=sns_starter.start_sns)
+    provider = SnsProvider()
+    listener = AsfWithFallbackListener("sns", provider, fallback=sns_listener.UPDATE_SNS)
+
+    return Service("sns", listener=listener, start=sns_starter.start_sns)
 
 
 @aws_provider()
